@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#080d19">
+<title>SNES Arcade</title>
+<style>
+:root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:#080d19;color:#eef4ff}
+h1{margin:0;color:#6be2ff;font-size:clamp(22px,3vw,34px)}
+.btn{border:0;border-radius:9px;padding:10px 14px;background:#0b83ba;color:#fff;font-weight:600;cursor:pointer}
+.btn:hover{background:#096a96}
+.btn-save{background:#27ae60}.btn-save:hover{background:#219653}
+.btn-load{background:#e67e22}.btn-load:hover{background:#d35400}
+
+/* ===== BIBLIOTECA ===== */
+.lib-header{padding:22px max(20px,4vw);background:linear-gradient(110deg,#10264a,#14162e);border-bottom:2px solid #16baf7;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.lib-header p{margin:5px 0 0;color:#a9c0d9}
+.top-tag{color:#a9c0d9;font-size:13px}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 100px)}
+aside{padding:20px;background:#10192b;border-right:1px solid #293c5b}
+aside h2{font-size:16px;margin:0 0 18px}
+.categoria{display:block;width:100%;border:0;border-radius:9px;text-align:left;padding:12px;margin:6px 0;background:#1b2a43;color:#e8f4ff;cursor:pointer}
+.categoria:hover,.categoria.ativa{background:#116a9e}
+main.lib{padding:25px;min-width:0}
+.topo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+input[type=text]{padding:12px 14px;width:min(100%,340px);background:#131f32;color:#fff;border:1px solid #355579;border-radius:10px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
+.card{background:#14233a;border:1px solid #277665;border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;color:#fff;padding:0;transition:transform .15s,border-color .15s}
+.card:hover,.card:focus-visible{transform:translateY(-3px);border-color:#16baf7}
+.capa{height:160px;width:100%;object-fit:cover;display:block;background:#000}
+.sem-capa{height:160px;display:grid;place-items:center;background:linear-gradient(135deg,#123e65,#261849);font-size:54px}
+.info{padding:13px}
+.info strong{display:block;font-size:17px;margin-bottom:6px}
+.info small{color:#9fb4cc}
+.play{display:inline-block;margin-top:12px;color:#5bdbff;font-weight:bold}
+.nota{color:#a6bdd7;line-height:1.6;font-size:14px}
+
+/* ===== PLAYER ===== */
+.pl-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;background:#10192b;border-bottom:1px solid #29466b}
+.pl-header h1{font-size:20px}
+.acoes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+main.pl{padding:12px;max-width:1100px;margin:auto}
+#game{width:100%;height:min(76vh,760px);min-height:360px;background:#000;border:1px solid #355579;border-radius:10px;overflow:hidden}
+.aviso{color:#a6bdd7;font-size:13px;line-height:1.5}
+.erro{padding:12px 0;color:#ffcf8a}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#10192b;border:1px solid #16baf7;color:#eef4ff;padding:12px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.25s;z-index:99999;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:700px){
+  .layout{display:block}
+  aside{border-right:0;border-bottom:1px solid #293c5b;padding:14px}
+  #categorias{display:flex;overflow:auto;gap:8px}
+  .categoria{white-space:nowrap;width:auto;flex:0 0 auto}
+  main.lib{padding:16px}
+  .grade{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .capa,.sem-capa{height:125px}
+  .pl-header{padding:10px}.pl-header h1{font-size:17px}
+  main.pl{padding:8px}#game{height:70vh;min-height:300px}.aviso{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= TELA: BIBLIOTECA ================= -->
+<div id="viewBiblioteca" hidden>
+  <header class="lib-header">
+    <div><h1>SNES_ARCADE</h1><p>Biblioteca visual de jogos Super Nintendo (SNES)</p></div>
+    <span class="top-tag">ROM .SMC</span>
+  </header>
+  <div class="layout">
+    <aside>
+      <h2>CATEGORIAS</h2>
+      <nav id="categorias" aria-label="Categorias"></nav>
+    </aside>
+    <main class="lib">
+      <div class="topo">
+        <h2 id="cabecalho">Todos os jogos</h2>
+        <input type="text" id="busca" placeholder="Pesquisar jogo..." aria-label="Pesquisar jogo">
+      </div>
+      <div id="grade" class="grade"></div>
+      <p id="mensagem" class="nota"></p>
+      <p class="nota">Adicione suas ROMs e capas na pasta <b>jogos/</b> e cadastre os caminhos na lista <b>JOGOS</b> no início do script deste arquivo. O emulador é carregado pela internet.</p>
+    </main>
+  </div>
+</div>
+
+<!-- ================= TELA: PLAYER ================= -->
+<div id="viewPlayer" hidden>
+  <header class="pl-header">
+    <h1 id="titulo">SNES_ARCADE</h1>
+    <div class="acoes">
+      <button class="btn btn-save" id="btnSalvarPartida">💾 SALVAR PARTIDA</button>
+      <button class="btn btn-load" id="btnCarregarSave">📂 CARREGAR SAVE</button>
+      <button class="btn" id="btnVoltar">VOLTAR À BIBLIOTECA</button>
+    </div>
+  </header>
+  <main class="pl">
+    <div id="game"></div>
+    <p class="aviso">
+      <b>SALVAR PARTIDA</b> grava o save direto na pasta <code>save/</code> e <b>CARREGAR SAVE</b> lê dela na hora.
+      Na primeira vez o navegador pede para você escolher a pasta <code>save</code> (só uma vez; ela fica lembrada).
+    </p>
+    <p id="erro" class="erro"></p>
+  </main>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+/* =====================================================
+   LISTA DE JOGOS (antes era o jogos.json)
+   - nome   : usado também como nome do save (save/<nome>.state)
+   - titulo : nome exibido na tela
+   ===================================================== */
+const JOGOS = [
+  { nome: "FinalFightIII", titulo: "Final Fight III", categoria: "Aventura",
+    arquivo: "jogos/aventura/FinalFightIII.smc", imagem: "jogos/aventura/FinalFightIII.png" },
+  { nome: "erofighters", titulo: "Aero Fighters", categoria: "Ação",
+    arquivo: "jogos/acao/aerofighters.smc", imagem: "jogos/acao/aerofighters.png" },
+  { nome: "carros", titulo: "F1 Carros", categoria: "Corrida",
+    arquivo: "jogos/corrida/f1carro.smc", imagem: "jogos/corrida/f1carro.png" }
+];
+
+const $ = id => document.getElementById(id);
+const caminhoSeguro = s => typeof s === 'string' && s.startsWith('jogos/') &&
+  !s.split('/').includes('..') && !s.includes('\\') && !s.includes('?') && !s.includes('#');
+
+let toastTimer;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* =====================================================
+   BIBLIOTECA
+   ===================================================== */
+let categoriaAtual = 'Todos';
+const jogos = JOGOS.filter(j => j && typeof j.nome === 'string' && caminhoSeguro(j.arquivo) && /\.(smc|sfc)$/i.test(j.arquivo));
+
+function desenharCategorias(){
+  const nomes = ['Todos', ...new Set(jogos.map(j => j.categoria || 'Outros'))];
+  const nav = $('categorias'); nav.replaceChildren();
+  nomes.forEach(nome => {
+    const b = document.createElement('button');
+    b.className = 'categoria' + (categoriaAtual === nome ? ' ativa' : '');
+    b.textContent = (nome === 'Todos' ? '🕹️ ' : '📁 ') + nome;
+    b.onclick = () => { categoriaAtual = nome; desenharCategorias(); desenharGrade(); };
+    nav.append(b);
+  });
+}
+
+function desenharGrade(){
+  const termo = $('busca').value.trim().toLocaleLowerCase('pt-BR');
+  $('cabecalho').textContent = categoriaAtual === 'Todos' ? 'Todos os jogos' : categoriaAtual;
+  const grade = $('grade'); grade.replaceChildren();
+  const lista = jogos.filter(j =>
+    (categoriaAtual === 'Todos' || (j.categoria || 'Outros') === categoriaAtual) &&
+    String(j.titulo || j.nome).toLocaleLowerCase('pt-BR').includes(termo));
+
+  lista.forEach(j => {
+    const b = document.createElement('button'); b.className = 'card';
+    const capa = document.createElement('div'); capa.className = 'sem-capa'; capa.textContent = '🎮';
+    if (caminhoSeguro(j.imagem) && /\.(png|jpe?g|webp)$/i.test(j.imagem)){
+      const img = document.createElement('img');
+      img.className = 'capa'; img.alt = 'Capa de ' + (j.titulo || j.nome); img.loading = 'lazy'; img.src = j.imagem;
+      img.onerror = () => img.replaceWith(capa);
+      b.append(img);
+    } else b.append(capa);
+    const info = document.createElement('div'); info.className = 'info';
+    const nome = document.createElement('strong'); nome.textContent = j.titulo || j.nome;
+    const cat = document.createElement('small'); cat.textContent = (j.categoria || 'Outros') + ' • ' + j.arquivo.split('.').pop().toUpperCase();
+    const play = document.createElement('div'); play.className = 'play'; play.textContent = 'JOGAR';
+    info.append(nome, cat, play); b.append(info);
+    b.onclick = () => { location.href = '?rom=' + encodeURIComponent(j.arquivo) + '&nome=' + encodeURIComponent(j.nome) + '&titulo=' + encodeURIComponent(j.titulo || j.nome); };
+    grade.append(b);
+  });
+  $('mensagem').textContent = lista.length ? '' : (jogos.length ? 'Nenhum jogo encontrado.' : 'Nenhum jogo cadastrado.');
+}
+
+function iniciarBiblioteca(){
+  $('viewBiblioteca').hidden = false;
+  $('busca').oninput = desenharGrade;
+  desenharCategorias(); desenharGrade();
+}
+
+/* =====================================================
+   SAVE / LOAD DIRETO NA PASTA save/
+   - Chrome/Edge (https ou localhost): File System Access API.
+     Escolhe a pasta UMA vez; o navegador lembra (IndexedDB).
+   - Outros navegadores: baixa o arquivo / lê de save/ via fetch.
+   ===================================================== */
+function idb(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('snes-arcade', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('h');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k){
+  const db = await idb();
+  return new Promise((res, rej) => { const q = db.transaction('h').objectStore('h').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+}
+async function idbSet(k, v){
+  const db = await idb();
+  return new Promise((res, rej) => { const t = db.transaction('h', 'readwrite'); t.objectStore('h').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); });
+}
+
+async function pegarPastaSave(){
+  if (!window.showDirectoryPicker) return null;           // navegador sem suporte
+  let h = null;
+  try { h = await idbGet('pastaSave'); } catch (e) {}
+  if (h){
+    let p = await h.queryPermission({ mode: 'readwrite' });
+    if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' });
+    if (p === 'granted') return h;
+  }
+  const escolhida = await showDirectoryPicker({ id: 'snes-save', mode: 'readwrite' });
+  let dir = escolhida;
+  if (escolhida.name.toLowerCase() !== 'save') dir = await escolhida.getDirectoryHandle('save', { create: true });
+  await idbSet('pastaSave', dir);
+  return dir;
+}
+
+function emuPronto(){
+  const e = window.EJS_emulator;
+  return e && e.gameManager && typeof e.gameManager.getState === 'function' ? e : null;
+}
+
+/* ===== PLAYER ===== */
+function iniciarPlayer(rom, nome, titulo){
+  $('viewPlayer').hidden = false;
+  $('titulo').textContent = 'SNES_ARCADE — ' + titulo;
+  document.title = titulo + ' — SNES Arcade';
+  $('btnVoltar').onclick = () => { location.href = location.pathname; };
+
+  const seguro = caminhoSeguro(rom) && /\.(smc|sfc)$/i.test(rom);
+  if (!seguro){
+    $('erro').textContent = 'Caminho da ROM inválido. Volte à biblioteca e selecione um jogo cadastrado.';
+    return;
+  }
+
+  window.EJS_player = '#game';
+  window.EJS_core = 'snes';
+  window.EJS_gameUrl = new URL(rom, location.href).href;
+  window.EJS_gameName = titulo;
+  window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+  window.EJS_controlScheme = 'snes';
+  window.EJS_startOnLoaded = true;
+  window.EJS_volume = 0.5;
+  window.EJS_gameID = rom;
+  window.EJS_Buttons = {
+    playPause: true, restart: true, fullscreen: true,
+    saveState: true, loadState: true, quickSave: true, quickLoad: true,
+    volume: true, gamepad: true, exitEmulation: false
+  };
+
+  const s = document.createElement('script');
+  s.src = window.EJS_pathtodata + 'loader.js';
+  s.onerror = () => { $('erro').textContent = 'Não foi possível carregar o EmulatorJS. Confira sua conexão com a internet.'; };
+  document.body.appendChild(s);
+
+  const arquivoSave = nome + '.state';
+
+  /* ---- SALVAR PARTIDA ---- */
+  $('btnSalvarPartida').onclick = async () => {
+    const emu = emuPronto();
+    if (!emu) return toast('⏳ Aguarde o jogo iniciar para salvar.');
+    let dados;
+    try { dados = emu.gameManager.getState(); } catch (e) { return toast('❌ Não foi possível gerar o save.'); }
+    if (!dados || !dados.length) return toast('❌ Save vazio. Tente novamente.');
+
+    try {
+      const dir = await pegarPastaSave();
+      if (dir){
+        const fh = await dir.getFileHandle(arquivoSave, { create: true });
+        const w = await fh.createWritable();
+        await w.write(dados); await w.close();
+        return toast('💾 Partida salva em save/' + arquivoSave);
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return toast('Operação cancelada.');
+      console.error(e);
+    }
+    // Fallback: baixa o arquivo (mova para a pasta save/)
+    const url = URL.createObjectURL(new Blob([dados], { type: 'application/octet-stream' }));
+    const a = document.createElement('a'); a.href = url; a.download = arquivoSave;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    toast('💾 Save baixado. Coloque ' + arquivoSave + ' na pasta save/.');
+  };
+
+  /* ---- CARREGAR SAVE ---- */
+  $('btnCarregarSave').onclick = async () => {
+    const emu = emuPronto();
+    if (!emu) return toast('⏳ Aguarde o jogo iniciar para carregar.');
+    let buf = null;
+
+    // 1) direto da pasta save/ (File System Access)
+    try {
+      const dir = await pegarPastaSave();
+      if (dir){
+        try { buf = await (await (await dir.getFileHandle(arquivoSave)).getFile()).arrayBuffer(); }
+        catch (e) { if (e.name !== 'NotFoundError') throw e; }
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return toast('Operação cancelada.');
+      console.error(e);
+    }
+
+    // 2) via servidor / GitHub Pages: save/<nome>.state
+    if (!buf){
+      try {
+        const r = await fetch('save/' + encodeURIComponent(arquivoSave), { cache: 'no-store' });
+        if (r.ok) buf = await r.arrayBuffer();
+      } catch (e) {}
+    }
+
+    // 3) último recurso: escolher o arquivo manualmente
+    if (!buf){
+      toast('Save não encontrado em save/. Escolha o arquivo manualmente.');
+      buf = await new Promise(resolve => {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.state';
+        inp.onchange = () => { const f = inp.files[0]; if (!f) return resolve(null); const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsArrayBuffer(f); };
+        inp.oncancel = () => resolve(null);
+        inp.click();
+      });
+    }
+    if (!buf) return;
+
+    try {
+      emu.gameManager.loadState(new Uint8Array(buf));
+      toast('🎮 Save carregado com sucesso!');
+    } catch (e) {
+      console.error(e); toast('❌ O arquivo de save não é válido para este jogo.');
+    }
+  };
+}
+
+/* ===== ROTEAMENTO: com ?rom= abre o player, senão a biblioteca ===== */
+const params = new URLSearchParams(location.search);
+const romParam = params.get('rom');
+if (romParam){
+  const nome = params.get('nome') || 'jogo';
+  iniciarPlayer(romParam, nome, params.get('titulo') || nome);
+} else {
+  iniciarBiblioteca();
+}
+</script>
+</body>
+</html>
