@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -116,14 +116,30 @@ main.pl{padding:12px;max-width:1100px;margin:auto}
    - nome   : usado também como nome do save (save/<nome>.state)
    - titulo : nome exibido na tela
    ===================================================== */
+
+
 const JOGOS = [
-  { nome: "FinalFightIII", titulo: "Final Fight III", categoria: "Aventura",
-    arquivo: "jogos/aventura/FinalFightIII.smc", imagem: "jogos/aventura/FinalFightIII.png" },
-  { nome: "erofighters", titulo: "Aero Fighters", categoria: "Ação",
+  
+
+{ nome: "FinalFightIII", titulo: "Final Fight III", categoria: "Aventura",
+ arquivo: "jogos/aventura/FinalFightIII.smc", imagem: "jogos/aventura/FinalFightIII.png" },
+  
+
+{ nome: "erofighters", titulo: "Aero Fighters", categoria: "Ação",
     arquivo: "jogos/acao/aerofighters.smc", imagem: "jogos/acao/aerofighters.png" },
-  { nome: "carros", titulo: "F1 Carros", categoria: "Corrida",
-    arquivo: "jogos/corrida/f1carro.smc", imagem: "jogos/corrida/f1carro.png" }
+ 
+
+ { nome: "carros", titulo: "F1 Carros", categoria: "Corrida",
+    arquivo: "jogos/corrida/f1poleposition.smc", imagem: "jogos/corrida/f1poleposition.png" }
+
+
+
+
 ];
+
+
+
+
 
 const $ = id => document.getElementById(id);
 const caminhoSeguro = s => typeof s === 'string' && s.startsWith('jogos/') &&
